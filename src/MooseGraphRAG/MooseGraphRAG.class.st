@@ -19,11 +19,12 @@ Class {
 MooseGraphRAG >> buildEntitiesColumns [
 	"Builder by field"
 
-	| idBuilder titleBuilder descriptionBuilder idArray titleArray descriptionArray columns listBuilder listArray humanIdBuilder humanIdArray degreeBuilder degreeArray |
+	| idBuilder titleBuilder descriptionBuilder idArray titleArray descriptionArray columns listBuilder listArray humanIdBuilder humanIdArray degreeBuilder degreeArray typeBuilder typeArray |
 	"create builder"
 	idBuilder := arrowLibrary garrow_string_array_builder_new.
 	humanIdBuilder := arrowLibrary garrow_int64_array_builder_new.
 	titleBuilder := arrowLibrary garrow_string_array_builder_new.
+	typeBuilder := arrowLibrary garrow_string_array_builder_new.
 	descriptionBuilder := arrowLibrary garrow_string_array_builder_new.
 	listBuilder := arrowLibrary
 		               garrow_list_array_builder_new: listStringType
@@ -46,6 +47,7 @@ MooseGraphRAG >> buildEntitiesColumns [
 				garrow_string_array_builder: titleBuilder
 				_append_string: (self nameOf: entity)
 				error: nil.
+			typeBuilder append: entity class name.
 			arrowLibrary
 				garrow_string_array_builder: descriptionBuilder
 				_append_string: entity class name
@@ -69,6 +71,7 @@ MooseGraphRAG >> buildEntitiesColumns [
 	titleArray := arrowLibrary
 		              garrow_array_builder_finish: titleBuilder
 		              error: nil.
+	typeArray := typeBuilder finish.
 	descriptionArray := arrowLibrary
 		                    garrow_array_builder_finish: descriptionBuilder
 		                    error: nil.
@@ -85,6 +88,7 @@ MooseGraphRAG >> buildEntitiesColumns [
 	columns := gLibrary g_list_append: columns with: idArray.
 	columns := gLibrary g_list_append: columns with: humanIdArray.
 	columns := gLibrary g_list_append: columns with: titleArray.
+	columns := gLibrary g_list_append: columns with: typeArray.
 	columns := gLibrary g_list_append: columns with: descriptionArray.
 	columns := gLibrary g_list_append: columns with: listArray.
 	columns := gLibrary g_list_append: columns with: degreeArray.
@@ -351,7 +355,7 @@ MooseGraphRAG >> prepareRelationshipsTableSchema [
 MooseGraphRAG >> prepareTableSchema [
 	"I need id (int) title (string) description (string)"
 
-	| strType fields idField titleField descriptionField schema textUnitIdsField textUnitIdField intType humanIdField degreeField |
+	| strType fields idField titleField descriptionField schema textUnitIdsField textUnitIdField intType humanIdField degreeField typeField |
 	strType := arrowLibrary garrow_string_data_type_new.
 	intType := arrowLibrary garrow_int64_data_type_new.
 
@@ -361,10 +365,10 @@ MooseGraphRAG >> prepareTableSchema [
 	humanIdField := arrowLibrary
 		                garrow_field_new: 'human_readable_id'
 		                dataType: intType.
-
 	titleField := arrowLibrary
 		              garrow_field_new: 'title'
 		              dataType: strType.
+	typeField := arrowLibrary garrow_field_new: 'type' dataType: strType.
 	descriptionField := arrowLibrary
 		                    garrow_field_new: 'description'
 		                    dataType: strType.
@@ -385,6 +389,7 @@ MooseGraphRAG >> prepareTableSchema [
 	fields := gLibrary g_list_append: fields with: idField.
 	fields := gLibrary g_list_append: fields with: humanIdField.
 	fields := gLibrary g_list_append: fields with: titleField.
+	fields := gLibrary g_list_append: fields with: typeField.
 	fields := gLibrary g_list_append: fields with: descriptionField.
 	fields := gLibrary g_list_append: fields with: textUnitIdsField.
 	fields := gLibrary g_list_append: fields with: degreeField.
