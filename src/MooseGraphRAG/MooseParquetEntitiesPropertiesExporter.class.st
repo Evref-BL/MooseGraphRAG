@@ -24,13 +24,12 @@ Class {
 MooseParquetEntitiesPropertiesExporter >> export [
 	"Perform entities export"
 
-	| schema columns |
 	"prepare schema""create table""write the file now""if everything goes well, you can close the writer here"
 	schema := self prepareSchema.
 	valueBoolBuilder := self prepareBuilder.
 	self model entities do: [ :entity | self exportEntity: entity ].
 	columns := self finishBuilder.
-	self outputTableWithSchema: schema fromColumns: columns
+	self outputTable
 ]
 
 { #category : 'as yet unclassified' }
@@ -56,7 +55,7 @@ MooseParquetEntitiesPropertiesExporter >> exportEntity: entity [
 { #category : 'as yet unclassified' }
 MooseParquetEntitiesPropertiesExporter >> fillBooleanProperty: property forEntity: entity [
 
-	valueTypeBuilder append: 2.
+	valueTypeBuilder append: 3.
 	valueStrBuilder appendNull.
 	valueIntBuilder appendNull.
 	valueFloatBuilder appendNull.
