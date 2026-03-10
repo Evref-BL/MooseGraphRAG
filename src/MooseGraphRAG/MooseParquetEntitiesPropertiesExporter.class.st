@@ -164,7 +164,7 @@ MooseParquetEntitiesPropertiesExporter >> prepareBuilder [
 MooseParquetEntitiesPropertiesExporter >> prepareSchema [
 	"Perform entities export"
 
-	| strType int64Type idField key value_type fields int8Type value_str value_int value_float value_bool |
+	| strType int64Type idField key value_type fields int8Type value_str value_int value_float value_bool floatType boolType |
 	"prepare schema"
 	strType := PharoArrowLibrary uniqueInstance
 		           garrow_string_data_type_new.
@@ -172,6 +172,10 @@ MooseParquetEntitiesPropertiesExporter >> prepareSchema [
 		             garrow_int64_data_type_new.
 	int8Type := PharoArrowLibrary uniqueInstance
 		            garrow_int8_data_type_new.
+	floatType := PharoArrowLibrary uniqueInstance
+		            garrow_float_data_type_new.
+	boolType := PharoArrowLibrary uniqueInstance
+		            garrow_boolean_data_type_new.
 
 	idField := PharoArrowLibrary uniqueInstance
 		           garrow_field_new: 'node_id'
@@ -184,16 +188,16 @@ MooseParquetEntitiesPropertiesExporter >> prepareSchema [
 		              dataType: int8Type.
 	value_str := PharoArrowLibrary uniqueInstance
 		             garrow_field_new: 'value_str'
-		             dataType: int8Type.
+		             dataType: strType.
 	value_int := PharoArrowLibrary uniqueInstance
 		             garrow_field_new: 'value_int'
-		             dataType: int8Type.
+		             dataType: int64Type.
 	value_float := PharoArrowLibrary uniqueInstance
 		               garrow_field_new: 'value_float'
-		               dataType: int8Type.
+		               dataType: floatType.
 	value_bool := PharoArrowLibrary uniqueInstance
 		              garrow_field_new: 'value_bool'
-		              dataType: int8Type.
+		              dataType: boolType.
 
 	fields := nil.
 	fields := PharoGLibLibrary uniqueInstance

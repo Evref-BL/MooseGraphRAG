@@ -96,7 +96,6 @@ MooseParquetRelationshipsExporter >> model: anObject [
 MooseParquetRelationshipsExporter >> outputTable [
 
 	| writer table |
-	columns := self finishBuilder.
 	"create table"
 	table := PharoArrowLibrary uniqueInstance
 		         garrow_table_new_values: schema
