@@ -24,13 +24,20 @@ Class {
 { #category : 'public' }
 MooseParquetExporter >> export [
 
-	| entitiesExporter |
-	entitiesExporter := MooseParquetEntitiesExporter new.
-	entitiesExporter model: self model.
-	entitiesExporter export.
-	entitiesExporter := MooseParquetRelationshipsExporter new.
-	entitiesExporter model: self model.
-	entitiesExporter export
+	| exporters |
+	exporters := {
+		             MooseParquetEntitiesExporter new.
+		             MooseParquetEntitiesPropertiesExporter new.
+		             MooseParquetRelationshipsExporter new }.
+	exporters do: [ :exporter |
+		exporter prepareSchema.
+		exporter prepareBuilder ].
+	self model entities do: [ :entity |
+		exporters do: [ :exporter | exporter exportEntity: entity ] ].
+	exporters do: [ :exporter |
+		exporter
+			finishBuilder;
+			outputTable ]
 ]
 
 { #category : 'accessing' }

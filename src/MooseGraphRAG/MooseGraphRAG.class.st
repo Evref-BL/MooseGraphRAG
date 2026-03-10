@@ -163,7 +163,7 @@ MooseGraphRAG >> buildRelationshipsColumns [
 						sourceBuilder append: (self nameOf: entity).
 						targetBuilder append: (self nameOf: target).
 						descriptionBuilder append:
-							complexProperty name , ': ' , complexProperty comment.
+							complexProperty name , ': ' , (complexProperty comment ifNil: ['']).
 						weightBuilder append: 1.0.
 						arrowLibrary
 							garrow_list_array_builder_append_value: listBuilder
