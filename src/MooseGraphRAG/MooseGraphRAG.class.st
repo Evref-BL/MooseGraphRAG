@@ -11,8 +11,9 @@ Class {
 		'parquetLibrary',
 		'listStringType'
 	],
-	#category : 'MooseGraphRAG',
-	#package : 'MooseGraphRAG'
+	#category : 'MooseGraphRAG-GraphRAG',
+	#package : 'MooseGraphRAG',
+	#tag : 'GraphRAG'
 }
 
 { #category : 'entities' }
@@ -351,6 +352,58 @@ MooseGraphRAG >> prepareTableSchema [
 	fields := gLibrary g_list_append: fields with: degreeField.
 
 	"arrow schema from our usage"
+	schema := arrowLibrary garrow_schema_new: fields.
+	^ schema
+]
+
+{ #category : 'textUnits' }
+MooseGraphRAG >> prepareTextUnitsTableSchema [
+
+	| strType intType lstStringType textField nTokensField documentIDField entityIdField entityIdsField relationshipsIdField relationshipsIdsField idField humanIdField fields schema |
+	strType := arrowLibrary garrow_string_data_type_new.
+	intType := arrowLibrary garrow_int64_data_type_new.
+
+	"Définition des champs"
+	idField := arrowLibrary garrow_field_new: 'id' dataType: strType.
+	humanIdField := arrowLibrary
+		                garrow_field_new: 'human_readable_id'
+		                dataType: intType.
+	textField := arrowLibrary garrow_field_new: 'text' dataType: strType.
+	nTokensField := arrowLibrary
+		                garrow_field_new: 'n_tokens'
+		                dataType: intType.
+	documentIDField := arrowLibrary
+		                   garrow_field_new: 'document_id'
+		                   dataType: strType.
+
+	"Définition du type liste de chaînes pour les champs entity_ids et relationships_ids"
+	entityIdField := arrowLibrary
+		                 garrow_field_new: 'entity_id'
+		                 dataType: strType.
+	lstStringType := arrowLibrary garrow_list_data_type_new:
+		                 entityIdField.
+	entityIdsField := arrowLibrary
+		                  garrow_field_new: 'entity_ids'
+		                  dataType: lstStringType.
+
+	relationshipsIdField := arrowLibrary
+		                        garrow_field_new: 'relationship_id'
+		                        dataType: strType.
+	relationshipsIdsField := arrowLibrary
+		                         garrow_field_new: 'relationships_ids'
+		                         dataType:
+		                         (arrowLibrary garrow_list_data_type_new:
+			                          relationshipsIdField).
+
+	fields := nil.
+	fields := gLibrary g_list_append: fields with: idField.
+	fields := gLibrary g_list_append: fields with: humanIdField.
+	fields := gLibrary g_list_append: fields with: textField.
+	fields := gLibrary g_list_append: fields with: nTokensField.
+	fields := gLibrary g_list_append: fields with: documentIDField.
+	fields := gLibrary g_list_append: fields with: entityIdsField.
+	fields := gLibrary g_list_append: fields with: relationshipsIdsField.
+
 	schema := arrowLibrary garrow_schema_new: fields.
 	^ schema
 ]
