@@ -285,10 +285,10 @@ MooseGraphRAGV2 >> effectiveTextUnitIdsForSource: source target: target candidat
 
 { #category : 'accessing' }
 MooseGraphRAGV2 >> entitiesToExport [
-    "Classes, methods, and attributes from the model"
-    ^ self model allModelEntities select: [ :entity |
-        (#('Class' 'Method' 'Attribute') anySatisfy: [ :kw |
-            entity class name includesSubstring: kw ]) ]
+	"Classes, methods, and attributes from the model"
+
+	^ self model allModelEntities select: [ :entity |
+		  entity isClass or: [ entity isMethod or: [ entity isAttribute ] ] ]
 ]
 
 { #category : 'exporting' }
@@ -466,26 +466,32 @@ MooseGraphRAGV2 >> prepareTextUnitsSchema [
 
 { #category : 'private' }
 MooseGraphRAGV2 >> propertyRelationshipRecords [
-    | records |
-    records := OrderedCollection new.
-    self entitiesToExport do: [ :entity |
-        entity mooseDescription allComplexProperties do: [ :property |
-            (property isRelation and: [ property isDerived not ]) ifTrue: [
-                | value targets |
-                value := [ property getFrom: entity ] on: Error do: [ nil ].
-                value isNil ifFalse: [
-                    targets := value isCollection
-                        ifTrue: [ value asOrderedCollection ]
-                        ifFalse: [ OrderedCollection with: value ].
-                    targets do: [ :target |
-                        (target isNil not and: [ target respondsTo: #mooseID ]) ifTrue: [
-                            records add: {
-                                entity mooseID printString , '-' , property name , '-' , target mooseID printString.
-                                entity.
-                                target.
-                                (property name , ': ' , (property comment ifNil: [ '' ])).
-                                (self textUnitIdsFor: entity) } ] ] ] ] ] ].
-    ^ records
+
+	| records |
+	records := OrderedCollection new.
+	self entitiesToExport do: [ :entity |
+			entity metadescription allComplexProperties do: [ :property |
+					(property isRelation and: [ property isDerived not ]) ifTrue: [
+							| value targets |
+							value := [ property getFrom: entity ]
+								         on: Error
+								         do: [ nil ].
+							value isNil ifFalse: [
+									targets := value isCollection
+										           ifTrue: [ value asOrderedCollection ]
+										           ifFalse: [ OrderedCollection with: value ].
+									targets do: [ :target |
+											(target isNil not and: [ target respondsTo: #mooseID ])
+												ifTrue: [
+														records add: {
+																(entity mooseID printString , '-' , property name
+																 , '-' , target mooseID printString).
+																entity.
+																target.
+																(property name , ': '
+																 , (property comment ifNil: [ '' ])).
+																(self textUnitIdsFor: entity) } ] ] ] ] ] ].
+	^ records
 ]
 
 { #category : 'private' }
