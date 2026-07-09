@@ -34,7 +34,9 @@ MooseGraphRAGV2 >> buildEntitiesColumns [
       textUnitLstType textUnitIdsBuilder degreeBuilder
       idArray humanIdArray titleArray typeArray descriptionArray textUnitIdsArray degreeArray
       columns |
-    textUnitLstType := arrowLibrary garrow_list_data_type_new:
+   
+	"initialize each column type"
+	 textUnitLstType := arrowLibrary garrow_list_data_type_new:
         (arrowLibrary garrow_field_new: 'text_unit_id'
             dataType: arrowLibrary garrow_string_data_type_new).
     idBuilder := arrowLibrary garrow_string_array_builder_new.
@@ -44,6 +46,8 @@ MooseGraphRAGV2 >> buildEntitiesColumns [
     descriptionBuilder := arrowLibrary garrow_string_array_builder_new.
     textUnitIdsBuilder := arrowLibrary garrow_list_array_builder_new: textUnitLstType error: nil.
     degreeBuilder := arrowLibrary garrow_int64_array_builder_new.
+
+	"for each model's entity set up a row with each columns values"
     self entitiesToExport do: [ :entity |
         | normalizedType |
         normalizedType := self safeString: (self normalizedTypeOf: entity).
@@ -54,14 +58,18 @@ MooseGraphRAGV2 >> buildEntitiesColumns [
         arrowLibrary garrow_string_array_builder: descriptionBuilder _append_string: normalizedType error: nil.
         self appendStrings: (self textUnitIdsFor: entity) toListBuilder: textUnitIdsBuilder.
         arrowLibrary garrow_int64_array_builder: degreeBuilder _append_value: 1 error: nil ].
-    idArray := arrowLibrary garrow_array_builder_finish: idBuilder error: nil.
+   
+	"finalize columns references"
+	 idArray := arrowLibrary garrow_array_builder_finish: idBuilder error: nil.
     humanIdArray := arrowLibrary garrow_array_builder_finish: humanIdBuilder error: nil.
     titleArray := arrowLibrary garrow_array_builder_finish: titleBuilder error: nil.
     typeArray := arrowLibrary garrow_array_builder_finish: typeBuilder error: nil.
     descriptionArray := arrowLibrary garrow_array_builder_finish: descriptionBuilder error: nil.
     textUnitIdsArray := arrowLibrary garrow_array_builder_finish: textUnitIdsBuilder error: nil.
     degreeArray := arrowLibrary garrow_array_builder_finish: degreeBuilder error: nil.
-    columns := nil.
+    
+	"append coloumns to form the table "
+	columns := nil.
     columns := gLibrary g_list_append: columns with: idArray.
     columns := gLibrary g_list_append: columns with: humanIdArray.
     columns := gLibrary g_list_append: columns with: titleArray.
@@ -69,43 +77,64 @@ MooseGraphRAGV2 >> buildEntitiesColumns [
     columns := gLibrary g_list_append: columns with: descriptionArray.
     columns := gLibrary g_list_append: columns with: textUnitIdsArray.
     columns := gLibrary g_list_append: columns with: degreeArray.
+
+
     ^ columns
 ]
 
 { #category : 'building' }
 MooseGraphRAGV2 >> buildEntitiesColumns: schema [
-    | idBuilder humanIdBuilder titleBuilder typeBuilder descriptionBuilder
-      textUnitIdsBuilder idArray humanIdArray titleArray typeArray
-      descriptionArray textUnitIdsArray columns |
-    "--- builders ---"
-    idBuilder := arrowLibrary garrow_string_array_builder_new.
-    humanIdBuilder := arrowLibrary garrow_int64_array_builder_new.
-    titleBuilder := arrowLibrary garrow_string_array_builder_new.
-    typeBuilder := arrowLibrary garrow_string_array_builder_new.
-    descriptionBuilder := arrowLibrary garrow_string_array_builder_new.
-    textUnitIdsBuilder := arrowLibrary
-        garrow_list_array_builder_new: (arrowLibrary garrow_list_data_type_new:
-            (arrowLibrary garrow_field_new: 'text_unit_id'
-                dataType: arrowLibrary garrow_string_data_type_new))
-        error: nil.
-    "--- fill rows ---"
-    self entitiesToExport do: [ :entity |
-        arrowLibrary garrow_string_array_builder: idBuilder
-            _append_string: entity mooseID printString error: nil.
-        arrowLibrary garrow_int64_array_builder: humanIdBuilder
-            _append_value: entity mooseID error: nil.
-        arrowLibrary garrow_string_array_builder: titleBuilder
-            _append_string: (self nameOf: entity) error: nil.
-        arrowLibrary garrow_string_array_builder: typeBuilder
-            _append_string: entity class name error: nil.
-        arrowLibrary garrow_string_array_builder: descriptionBuilder
-            _append_string: entity class name error: nil.
-        self appendStrings: (self textUnitIdsFor: entity)
-            toListBuilder: textUnitIdsBuilder.
-        "degree placeholder - TODO compute actual degree"
-        arrowLibrary garrow_int64_array_builder_new ].
-    "reuse a degree builder properly"
-    ^ nil
+
+	| idBuilder humanIdBuilder titleBuilder typeBuilder descriptionBuilder textUnitIdsBuilder idArray humanIdArray titleArray typeArray descriptionArray textUnitIdsArray columns |
+	"--- builders ---"
+	self
+		deprecated: 'Use buildEntitiesColumns instead of current one'
+		on: '9 July 2026'
+		in:
+		'Pharo-13.1.0+SNAPSHOT.build.731.sha.c4d03ecd531b9f32fcc7cd9e3b61728bce0d4c7f (64 Bit)'.
+	idBuilder := arrowLibrary garrow_string_array_builder_new.
+	humanIdBuilder := arrowLibrary garrow_int64_array_builder_new.
+	titleBuilder := arrowLibrary garrow_string_array_builder_new.
+	typeBuilder := arrowLibrary garrow_string_array_builder_new.
+	descriptionBuilder := arrowLibrary garrow_string_array_builder_new.
+
+	textUnitIdsBuilder := arrowLibrary
+		                      garrow_list_array_builder_new:
+			                      (arrowLibrary garrow_list_data_type_new:
+				                       (arrowLibrary
+					                        garrow_field_new: 'text_unit_id'
+					                        dataType:
+					                        arrowLibrary garrow_string_data_type_new))
+		                      error: nil.
+	"--- fill rows ---"
+	self entitiesToExport do: [ :entity |
+			arrowLibrary
+				garrow_string_array_builder: idBuilder
+				_append_string: entity mooseID printString
+				error: nil.
+			arrowLibrary
+				garrow_int64_array_builder: humanIdBuilder
+				_append_value: entity mooseID
+				error: nil.
+			arrowLibrary
+				garrow_string_array_builder: titleBuilder
+				_append_string: (self nameOf: entity)
+				error: nil.
+			arrowLibrary
+				garrow_string_array_builder: typeBuilder
+				_append_string: entity class name
+				error: nil.
+			arrowLibrary
+				garrow_string_array_builder: descriptionBuilder
+				_append_string: entity class name
+				error: nil.
+			self
+				appendStrings: (self textUnitIdsFor: entity)
+				toListBuilder: textUnitIdsBuilder.
+			"degree placeholder - TODO compute actual degree"
+			arrowLibrary garrow_int64_array_builder_new ].
+	"reuse a degree builder properly"
+	^ nil
 ]
 
 { #category : 'exporting' }
