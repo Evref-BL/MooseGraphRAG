@@ -547,7 +547,7 @@ MooseGraphRAGV2 >> computePrecomputedData [
 							yourself ] ]
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'accessing' }
 MooseGraphRAGV2 >> documentEntities [
 	
 	^ documentEntitiesMap keys. 
@@ -617,7 +617,7 @@ MooseGraphRAGV2 >> initialize [
 	methodTextUnitMap := Dictionary new.
 	entityRelationshipMap := Dictionary new.
 	outputPath := FileLocator documents fullName.
-	filteredFamixEntities := Set with: FamixJavaSourcedEntity 
+	filteredFamixEntities := Set withAll: {FamixJavaClass . FamixJavaMethod . FamixJavaAttribute }
 ]
 
 { #category : 'private' }
