@@ -10,50 +10,80 @@ Class {
 	#tag : 'GraphRAGV2'
 }
 
+{ #category : 'as yet unclassified' }
+MooseGraphRAGV2Test >> buildFamixJavaEntityNamed: name WithType: famixType withSourceCode: aSourceText inModel: aModel [
+
+	| entity anchor |
+	entity := famixType new.
+	entity name: name.
+	anchor := FamixJavaSourceTextAnchor new.
+	anchor source: aSourceText.
+	entity sourceAnchor: anchor.
+	model add: entity.
+
+	^ entity
+]
+
 { #category : 'helper' }
 MooseGraphRAGV2Test >> buildSmallModel [
-    "Create a minimal FamixJavaModel with one class, two methods with source, one attribute, and one invocation"
-    | cls method1 method2 anchor1 anchor2 attr inv |
-    model := FamixJavaModel new.
-    model name: 'TestModel'.
-    cls := FamixJavaClass new.
-    cls name: 'TestClass'.
-    model add: cls.
+	"Create a minimal FamixJavaModel with one class, two methods with source, one attribute, and one invocation"
 
-    method1 := FamixJavaMethod new.
-    method1 name: 'caller'.
-    method1 parentType: cls.
-    anchor1 := FamixJavaSourceTextAnchor new.
-    anchor1 source: 'public void caller() { callee(); }'.
-    method1 sourceAnchor: anchor1.
-    model add: method1.
+	| cls method1 method2 attr inv |
+	model := FamixJavaModel new.
+	model name: 'TestModel'.
+	
+	cls := FamixJavaClass new.
+	cls name: 'TestClass'.
+	model add: cls.
 
-    method2 := FamixJavaMethod new.
-    method2 name: 'callee'.
-    method2 parentType: cls.
-    anchor2 := FamixJavaSourceTextAnchor new.
-    anchor2 source: 'public void callee() { return; }'.
-    method2 sourceAnchor: anchor2.
-    model add: method2.
+	cls :=  self
+		           buildFamixJavaEntityNamed: 'TestClass'
+		           WithType: FamixJavaClass 
+		           withSourceCode: 'public class TestClass'
+		           inModel: model.
 
-    attr := FamixJavaAttribute new.
-    attr name: 'testField'.
-    attr parentType: cls.
-    model add: attr.
+	method1 := self
+		           buildFamixJavaEntityNamed: 'caller'
+		           WithType: FamixJavaMethod
+		           withSourceCode: 'public void caller() { callee(); }'
+		           inModel: model.
+	method1 parentType: cls.
+	
+	
+	method2 := self
+		           buildFamixJavaEntityNamed: 'callee'
+		           WithType: FamixJavaMethod
+		           withSourceCode: 'public void callee() { return; }'
+		           inModel: model.
+	method2 parentType: cls.
+	
 
-    inv := FamixJavaInvocation new.
-    inv sender: method1.
-    inv addCandidate: method2.
-    model add: inv
+	attr := self
+		           buildFamixJavaEntityNamed: 'testField'
+		           WithType: FamixJavaAttribute
+		           withSourceCode: 'public String testField'
+		           inModel: model.
+	method2 parentType: cls.
+	
+
+	inv := FamixJavaInvocation new.
+	inv sender: method1.
+	inv addCandidate: method2.
+	model add: inv
 ]
 
 { #category : 'helper' }
 MooseGraphRAGV2Test >> exporter [
-    | v2 |
-    v2 := MooseGraphRAGV2 new.
-    v2 model: model.
-    v2 exportTo: tmpPath.
-    ^ v2
+
+	| v2 |
+	v2 := MooseGraphRAGV2 new.
+	v2 model: model.
+	v2 exportTo: tmpPath.
+	v2 filteredFamixEntities: { 
+			FamixJavaMethod.
+			FamixJavaClass.
+			FamixJavaAttribute }.
+	^ v2
 ]
 
 { #category : 'running' }
@@ -98,10 +128,11 @@ MooseGraphRAGV2Test >> testExportCreatesThreeFiles [
     | exporter files |
     exporter := self exporter.
     files := tmpPath asFileReference children collect: #basename.
-    self assert: files size equals: 3.
+    self assert: files size equals: 4.
     self assert: (files includes: 'entities.parquet').
     self assert: (files includes: 'text_units.parquet').
-    self assert: (files includes: 'relationships.parquet')
+    self assert: (files includes: 'relationships.parquet').
+    self assert: (files includes: 'documents.parquet')
 ]
 
 { #category : 'test_export' }
@@ -128,6 +159,6 @@ MooseGraphRAGV2Test >> testTextUnitsTableHasRightStructure [
     exporter := self exporter.
     reader := GParquetArrowFileReader on: tmpPath , '/text_units.parquet' error: nil.
     table := reader readTableWithError: nil.
-    self assert: table numberOfRows equals: 2.
+    self assert: table numberOfRows equals: 4.
     self assert: table numberOfColumns equals: 7
 ]

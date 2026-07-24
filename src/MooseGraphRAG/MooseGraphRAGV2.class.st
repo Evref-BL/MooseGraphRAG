@@ -9,12 +9,25 @@ Class {
 		'outputPath',
 		'methodTextUnitMap',
 		'entityRelationshipMap',
-		'filteredFamixEntities'
+		'filteredFamixEntities',
+		'documentEntitiesMap'
 	],
 	#category : 'MooseGraphRAG-GraphRAGV2',
 	#package : 'MooseGraphRAG',
 	#tag : 'GraphRAGV2'
 }
+
+{ #category : 'customization' }
+MooseGraphRAGV2 >> addFilteredFamixEntities: anCollectionOfFamixTypes [
+
+	filteredFamixEntities addAll: anCollectionOfFamixTypes asSet
+]
+
+{ #category : 'customization' }
+MooseGraphRAGV2 >> addFilteredFamixEntity: FamixTypes [
+
+	self addFilteredFamixEntities: {FamixTypes}
+]
 
 { #category : 'private' }
 MooseGraphRAGV2 >> appendStrings: aCollection toListBuilder: listBuilder [
@@ -27,6 +40,135 @@ MooseGraphRAGV2 >> appendStrings: aCollection toListBuilder: listBuilder [
             garrow_string_array_builder: innerBuilder
             _append_string: str
             error: nil ]
+]
+
+{ #category : 'building' }
+MooseGraphRAGV2 >> buildDocumentsColumns [
+
+	| idBuilder humanIdBuilder textBuilder entityLstType entityIdsBuilder relLstType relIdsBuilder idArray humanIdArray textArray entityIdsArray columns rowCounter titleBuilder creationDateBuilder titleArray creationDateArray |
+	"declare table colums type"
+	self flag: 'TODO: methods for each columns builder'.
+
+	entityLstType := arrowLibrary garrow_list_data_type_new:
+		                 (arrowLibrary
+			                  garrow_field_new: 'entity_id'
+			                  dataType:
+			                  arrowLibrary garrow_string_data_type_new).
+	relLstType := arrowLibrary garrow_list_data_type_new: (arrowLibrary
+			               garrow_field_new: 'relationship_id'
+			               dataType: arrowLibrary garrow_string_data_type_new).
+	idBuilder := arrowLibrary garrow_string_array_builder_new.
+	humanIdBuilder := arrowLibrary garrow_int64_array_builder_new.
+	textBuilder := arrowLibrary garrow_string_array_builder_new.
+	titleBuilder := arrowLibrary garrow_string_array_builder_new.
+	creationDateBuilder := arrowLibrary garrow_string_array_builder_new.
+	entityIdsBuilder := arrowLibrary
+		                    garrow_list_array_builder_new: entityLstType
+		                    error: nil.
+	relIdsBuilder := arrowLibrary
+		                 garrow_list_array_builder_new: relLstType
+		                 error: nil.
+	rowCounter := 0.
+
+	"put values inside columns  for each entity"
+	self documentEntities do: [ :entity |
+			| doc txt  docId entityIds title entities creationDate|
+			"get values for each columns "
+			
+			entities := documentEntitiesMap at: entity .
+			doc := entities first sourceAnchor.
+			
+			txt := self safeString: ([ doc fileReference contents ]
+					        on: Error
+					        do: [ '' ]).
+
+			title := self safeString: ([ (doc fileName) ]
+					        on: Error
+					        do: [ '' ]).
+
+			"document id linked inside document.parquet (here java files)"
+			docId := self safeString: doc fileName hash.
+
+			"multiple entity can be extracted from the same text_unit, thus the following array."
+			entityIds := OrderedCollection withAll: (entities collect: [:e | self safeString: e mooseID ]).
+			
+			creationDate := self safeString: doc fileReference creationTime .
+
+			rowCounter := rowCounter + 1.
+
+			"put the values in the proper columns"
+			arrowLibrary
+				garrow_string_array_builder: idBuilder
+				_append_string: docId
+				error: nil.
+			arrowLibrary
+				garrow_int64_array_builder: humanIdBuilder
+				_append_value: rowCounter
+				error: nil.
+			arrowLibrary
+				garrow_string_array_builder: textBuilder
+				_append_string: txt
+				error: nil.
+			arrowLibrary
+				garrow_string_array_builder: titleBuilder
+				_append_string: title
+				error: nil.
+				
+			arrowLibrary
+				garrow_string_array_builder: creationDateBuilder 
+				_append_string: creationDate
+				error: nil.
+				
+			
+
+			self appendStrings: entityIds toListBuilder: entityIdsBuilder ].
+
+
+	idArray := arrowLibrary
+		           garrow_array_builder_finish: idBuilder
+		           error: nil.
+	humanIdArray := arrowLibrary
+		                garrow_array_builder_finish: humanIdBuilder
+		                error: nil.
+	textArray := arrowLibrary
+		             garrow_array_builder_finish: textBuilder
+		             error: nil.
+	titleArray := arrowLibrary
+		              garrow_array_builder_finish: titleBuilder
+		              error: nil.
+	creationDateArray := arrowLibrary
+		              garrow_array_builder_finish: creationDateBuilder 
+		              error: nil.
+
+	entityIdsArray := arrowLibrary
+		                  garrow_array_builder_finish: entityIdsBuilder
+		                  error: nil.
+
+
+
+	columns := nil.
+	columns := gLibrary g_list_append: columns with: idArray.
+	columns := gLibrary g_list_append: columns with: humanIdArray.
+	columns := gLibrary g_list_append: columns with: textArray.
+	columns := gLibrary g_list_append: columns with: textArray.
+	columns := gLibrary g_list_append: columns with: titleArray.
+	columns := gLibrary g_list_append: columns with: creationDateArray.
+	columns := gLibrary g_list_append: columns with: entityIdsArray.
+
+	^ columns
+]
+
+{ #category : 'exporting' }
+MooseGraphRAGV2 >> buildDocumentsParquet [
+
+	| schema columns table |
+	schema := self prepareDocumentsSchema.
+	columns := self buildDocumentsColumns.
+	table := arrowLibrary
+		         garrow_table_new_values: schema
+		         values: columns
+		         error: nil.
+	self writeTable: table schema: schema toFile: 'documents.parquet'
 ]
 
 { #category : 'building' }
@@ -276,18 +418,15 @@ MooseGraphRAGV2 >> buildTextUnitsColumns [
 	"put values inside columns  for each entity"
 	self textUnitEntities do: [ :entity |
 			| txt nTokens docId entityIds relIds |
-			
 			"get values for each columns "
-			
-			txt := self safeString: ([ entity sourceText ]
+			txt := self safeString: ([ entity sourceAnchor sourceText ]
 					        on: Error
 					        do: [ '' ]).
 			nTokens := txt size // 4 max: 1.
-			
 
 			"document id linked inside document.parquet (here java files)"
-			docId :=  (self safeString: entity sourceAnchor mooseID).
-			
+			docId := self safeString: entity mooseID.
+
 			"multiple entity can be extracted from the same text_unit, thus the following array."
 			entityIds := OrderedCollection with:
 				             (self safeString: entity mooseID).
@@ -297,13 +436,12 @@ MooseGraphRAGV2 >> buildTextUnitsColumns [
 						      on: Error
 						      do: [ nil ].
 					pt isNil ifFalse: [ entityIds add: (self safeString: pt mooseID) ] ]."
-			
-			self flag: 'check the necessity of relationIds in text_unit'.
-			"relIds := self safeStringCollection:
-				          (self relationshipIdsFor: entity sourceAnchor mooseID)."
-				
+
+			relIds := self safeStringCollection:
+				          (self relationshipIdsFor: entity sourceAnchor).
+
 			rowCounter := rowCounter + 1.
-			
+
 			"put the values in the proper columns"
 			arrowLibrary
 				garrow_string_array_builder: idBuilder
@@ -327,9 +465,9 @@ MooseGraphRAGV2 >> buildTextUnitsColumns [
 				error: nil.
 			self appendStrings: entityIds toListBuilder: entityIdsBuilder.
 			self appendStrings: relIds toListBuilder: relIdsBuilder ].
-		
-		
-		
+
+
+
 	idArray := arrowLibrary
 		           garrow_array_builder_finish: idBuilder
 		           error: nil.
@@ -348,11 +486,11 @@ MooseGraphRAGV2 >> buildTextUnitsColumns [
 	entityIdsArray := arrowLibrary
 		                  garrow_array_builder_finish: entityIdsBuilder
 		                  error: nil.
-"	relIdsArray := arrowLibrary
+	relIdsArray := arrowLibrary
 		               garrow_array_builder_finish: relIdsBuilder
-		               error: nil."
-		
-	
+		               error: nil.
+
+
 	columns := nil.
 	columns := gLibrary g_list_append: columns with: idArray.
 	columns := gLibrary g_list_append: columns with: humanIdArray.
@@ -360,7 +498,7 @@ MooseGraphRAGV2 >> buildTextUnitsColumns [
 	columns := gLibrary g_list_append: columns with: nTokensArray.
 	columns := gLibrary g_list_append: columns with: documentIdArray.
 	columns := gLibrary g_list_append: columns with: entityIdsArray.
-"	columns := gLibrary g_list_append: columns with: relIdsArray."
+	columns := gLibrary g_list_append: columns with: relIdsArray.
 	^ columns
 ]
 
@@ -376,13 +514,15 @@ MooseGraphRAGV2 >> buildTextUnitsParquet [
 { #category : 'private' }
 MooseGraphRAGV2 >> computePrecomputedData [
 
-
 	methodTextUnitMap := Dictionary new.
 	entityRelationshipMap := Dictionary new.
-	
+	documentEntitiesMap := Dictionary new.
+
 	self textUnitEntities do: [ :entity |
-			self flag: 'WARNING: check if methodTextUnitMap should be build here'. 
-		methodTextUnitMap at: entity mooseID put: nil ].
+			self flag:
+				'WARNING: check if methodTextUnitMap should be build here'.
+			methodTextUnitMap at: entity mooseID put: nil ].
+
 	self relationshipRecords do: [ :record |
 			| relId source relIds |
 			relId := record first.
@@ -390,7 +530,29 @@ MooseGraphRAGV2 >> computePrecomputedData [
 			relIds := entityRelationshipMap
 				          at: source mooseID
 				          ifAbsentPut: [ OrderedCollection new ].
-			relIds add: relId ]
+			relIds add: relId ].
+
+	"Mapping document (java files) to entities (if not nil)"
+	((self model allWithSubTypesOf: FamixJavaSourceAnchor) reject: [
+		 :entity | entity element isNil ]) do: [ :entity |
+			documentEntitiesMap
+				at: entity fileName
+				ifPresent: [ :dic |
+						dic
+							add: entity element;
+							yourself ]
+				ifAbsentPut: [
+						OrderedCollection new
+							add: entity element;
+							yourself ] ]
+]
+
+{ #category : 'as yet unclassified' }
+MooseGraphRAGV2 >> documentEntities [
+	
+	^ documentEntitiesMap keys. 
+"	^ (self model allWithSubTypesOf: FamixJavaSourceAnchor)
+		  collectAsSet: [ :anchor | anchor fileReference ]"
 ]
 
 { #category : 'private' }
@@ -410,8 +572,9 @@ MooseGraphRAGV2 >> effectiveTextUnitIdsForSource: source target: target candidat
 MooseGraphRAGV2 >> entitiesToExport [
 	"Classes, methods, and attributes from the model"
 
-	^ self model allModelEntities select: [ :entity |
-		  entity isClass or: [ entity isMethod or: [ entity isAttribute ] ] ]
+	^ self textUnitEntities
+	"^ self model allModelEntities select: [ :entity |
+		  entity isClass or: [ entity isMethod or: [ entity isAttribute ] ] ]"
 ]
 
 { #category : 'exporting' }
@@ -422,27 +585,26 @@ MooseGraphRAGV2 >> export [
 
 { #category : 'exporting' }
 MooseGraphRAGV2 >> exportTo: aPath [
-    "Main entry point. Export entities, relationships and text_units to aPath directory."
-    outputPath := aPath.
-    self computePrecomputedData.
-    self buildEntitiesParquet.
-    self buildRelationshipsParquet.
-    self buildTextUnitsParquet
+	"Main entry point. Export entities, relationships and text_units to aPath directory."
+
+	outputPath := aPath.
+	self computePrecomputedData.
+	self buildDocumentsParquet. 
+	self buildEntitiesParquet.
+	self buildRelationshipsParquet.
+	self buildTextUnitsParquet.
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'customization' }
 MooseGraphRAGV2 >> filteredFamixEntities [
 
-	^ filteredFamixEntities ifNil: [
-			  Set new
-				  add: FamixJavaSourcedEntity;
-				  yourself ]
+	^ filteredFamixEntities 
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'customization' }
 MooseGraphRAGV2 >> filteredFamixEntities: anCollectionOfFamixTypes [
 
-	filteredFamixEntities addAll: (anCollectionOfFamixTypes asSet)
+	filteredFamixEntities := anCollectionOfFamixTypes asSet
 ]
 
 { #category : 'initialization' }
@@ -455,7 +617,7 @@ MooseGraphRAGV2 >> initialize [
 	methodTextUnitMap := Dictionary new.
 	entityRelationshipMap := Dictionary new.
 	outputPath := FileLocator documents fullName.
-	filteredFamixEntities := Set new. 
+	filteredFamixEntities := Set with: FamixJavaSourcedEntity 
 ]
 
 { #category : 'private' }
@@ -517,6 +679,46 @@ MooseGraphRAGV2 >> outputPath [
 { #category : 'accessing' }
 MooseGraphRAGV2 >> outputPath: aPath [
     outputPath := aPath
+]
+
+{ #category : 'schema' }
+MooseGraphRAGV2 >> prepareDocumentsSchema [
+
+	| strType intType idField humanIdField titleField textField textUnitIdField lstType textUnitIdsField creationDateField rawDataField fields |
+	strType := arrowLibrary garrow_string_data_type_new.
+	intType := arrowLibrary garrow_int64_data_type_new.
+	idField := arrowLibrary garrow_field_new: 'id' dataType: strType.
+	humanIdField := arrowLibrary
+		                garrow_field_new: 'human_readable_id'
+		                dataType: intType.
+	titleField := arrowLibrary
+		              garrow_field_new: 'title'
+		              dataType: strType.
+	textField := arrowLibrary garrow_field_new: 'text' dataType: strType.
+	textUnitIdField := arrowLibrary
+		                   garrow_field_new: 'text_unit_id'
+		                   dataType: strType.
+	lstType := arrowLibrary garrow_list_data_type_new: textUnitIdField.
+	textUnitIdsField := arrowLibrary
+		                    garrow_field_new: 'text_unit_ids'
+		                    dataType: lstType.
+		
+	creationDateField := arrowLibrary
+		               garrow_field_new: 'creation_date'
+		               dataType: strType.	
+	rawDataField := arrowLibrary
+		               garrow_field_new: 'raw_data'
+		               dataType: strType.
+	fields := nil.
+	fields := gLibrary g_list_append: fields with: idField.
+	fields := gLibrary g_list_append: fields with: humanIdField.
+	fields := gLibrary g_list_append: fields with: titleField.
+	fields := gLibrary g_list_append: fields with: textField.
+	fields := gLibrary g_list_append: fields with: textUnitIdsField.
+	fields := gLibrary g_list_append: fields with: creationDateField.
+	fields := gLibrary g_list_append: fields with: rawDataField.
+	
+	^ arrowLibrary garrow_schema_new: fields
 ]
 
 { #category : 'schema' }
