@@ -8,7 +8,8 @@ Class {
 		'parquetLibrary',
 		'outputPath',
 		'methodTextUnitMap',
-		'entityRelationshipMap'
+		'entityRelationshipMap',
+		'filteredFamixEntities'
 	],
 	#category : 'MooseGraphRAG-GraphRAGV2',
 	#package : 'MooseGraphRAG',
@@ -30,56 +31,92 @@ MooseGraphRAGV2 >> appendStrings: aCollection toListBuilder: listBuilder [
 
 { #category : 'building' }
 MooseGraphRAGV2 >> buildEntitiesColumns [
-    | idBuilder humanIdBuilder titleBuilder typeBuilder descriptionBuilder
-      textUnitLstType textUnitIdsBuilder degreeBuilder
-      idArray humanIdArray titleArray typeArray descriptionArray textUnitIdsArray degreeArray
-      columns |
-   
+
+	| idBuilder humanIdBuilder titleBuilder typeBuilder descriptionBuilder textUnitLstType textUnitIdsBuilder degreeBuilder idArray humanIdArray titleArray typeArray descriptionArray textUnitIdsArray degreeArray columns |
 	"initialize each column type"
-	 textUnitLstType := arrowLibrary garrow_list_data_type_new:
-        (arrowLibrary garrow_field_new: 'text_unit_id'
-            dataType: arrowLibrary garrow_string_data_type_new).
-    idBuilder := arrowLibrary garrow_string_array_builder_new.
-    humanIdBuilder := arrowLibrary garrow_int64_array_builder_new.
-    titleBuilder := arrowLibrary garrow_string_array_builder_new.
-    typeBuilder := arrowLibrary garrow_string_array_builder_new.
-    descriptionBuilder := arrowLibrary garrow_string_array_builder_new.
-    textUnitIdsBuilder := arrowLibrary garrow_list_array_builder_new: textUnitLstType error: nil.
-    degreeBuilder := arrowLibrary garrow_int64_array_builder_new.
+	textUnitLstType := arrowLibrary garrow_list_data_type_new:
+		                   (arrowLibrary
+			                    garrow_field_new: 'text_unit_id'
+			                    dataType:
+			                    arrowLibrary garrow_string_data_type_new).
+	idBuilder := arrowLibrary garrow_string_array_builder_new.
+	humanIdBuilder := arrowLibrary garrow_int64_array_builder_new.
+	titleBuilder := arrowLibrary garrow_string_array_builder_new.
+	typeBuilder := arrowLibrary garrow_string_array_builder_new.
+	descriptionBuilder := arrowLibrary garrow_string_array_builder_new.
+	textUnitIdsBuilder := arrowLibrary
+		                      garrow_list_array_builder_new: textUnitLstType
+		                      error: nil.
+	degreeBuilder := arrowLibrary garrow_int64_array_builder_new.
 
 	"for each model's entity set up a row with each columns values"
-    self entitiesToExport do: [ :entity |
-        | normalizedType |
-        normalizedType := self safeString: (self normalizedTypeOf: entity).
-        arrowLibrary garrow_string_array_builder: idBuilder _append_string: (self safeString: entity mooseID) error: nil.
-        arrowLibrary garrow_int64_array_builder: humanIdBuilder _append_value: entity mooseID error: nil.
-        arrowLibrary garrow_string_array_builder: titleBuilder _append_string: (self safeString: (self nameOf: entity)) error: nil.
-        arrowLibrary garrow_string_array_builder: typeBuilder _append_string: normalizedType error: nil.
-        arrowLibrary garrow_string_array_builder: descriptionBuilder _append_string: normalizedType error: nil.
-        self appendStrings: (self textUnitIdsFor: entity) toListBuilder: textUnitIdsBuilder.
-        arrowLibrary garrow_int64_array_builder: degreeBuilder _append_value: 1 error: nil ].
-   
+	self entitiesToExport do: [ :entity |
+			| normalizedType |
+			normalizedType := self safeString: (self normalizedTypeOf: entity).
+			arrowLibrary
+				garrow_string_array_builder: idBuilder
+				_append_string: (self safeString: entity mooseID)
+				error: nil.
+			arrowLibrary
+				garrow_int64_array_builder: humanIdBuilder
+				_append_value: entity mooseID
+				error: nil.
+			arrowLibrary
+				garrow_string_array_builder: titleBuilder
+				_append_string: (self safeString: (self nameOf: entity))
+				error: nil.
+			arrowLibrary
+				garrow_string_array_builder: typeBuilder
+				_append_string: normalizedType
+				error: nil.
+			arrowLibrary
+				garrow_string_array_builder: descriptionBuilder
+				_append_string: normalizedType
+				error: nil.
+			self flag: 'WARNING: ensure methodTextUnitMap is setup'.
+			self
+				appendStrings: (self textUnitIdsFor: entity)
+				toListBuilder: textUnitIdsBuilder.
+			arrowLibrary
+				garrow_int64_array_builder: degreeBuilder
+				_append_value: 1
+				error: nil ].
+
 	"finalize columns references"
-	 idArray := arrowLibrary garrow_array_builder_finish: idBuilder error: nil.
-    humanIdArray := arrowLibrary garrow_array_builder_finish: humanIdBuilder error: nil.
-    titleArray := arrowLibrary garrow_array_builder_finish: titleBuilder error: nil.
-    typeArray := arrowLibrary garrow_array_builder_finish: typeBuilder error: nil.
-    descriptionArray := arrowLibrary garrow_array_builder_finish: descriptionBuilder error: nil.
-    textUnitIdsArray := arrowLibrary garrow_array_builder_finish: textUnitIdsBuilder error: nil.
-    degreeArray := arrowLibrary garrow_array_builder_finish: degreeBuilder error: nil.
-    
+	idArray := arrowLibrary
+		           garrow_array_builder_finish: idBuilder
+		           error: nil.
+	humanIdArray := arrowLibrary
+		                garrow_array_builder_finish: humanIdBuilder
+		                error: nil.
+	titleArray := arrowLibrary
+		              garrow_array_builder_finish: titleBuilder
+		              error: nil.
+	typeArray := arrowLibrary
+		             garrow_array_builder_finish: typeBuilder
+		             error: nil.
+	descriptionArray := arrowLibrary
+		                    garrow_array_builder_finish: descriptionBuilder
+		                    error: nil.
+	textUnitIdsArray := arrowLibrary
+		                    garrow_array_builder_finish: textUnitIdsBuilder
+		                    error: nil.
+	degreeArray := arrowLibrary
+		               garrow_array_builder_finish: degreeBuilder
+		               error: nil.
+
 	"append coloumns to form the table "
 	columns := nil.
-    columns := gLibrary g_list_append: columns with: idArray.
-    columns := gLibrary g_list_append: columns with: humanIdArray.
-    columns := gLibrary g_list_append: columns with: titleArray.
-    columns := gLibrary g_list_append: columns with: typeArray.
-    columns := gLibrary g_list_append: columns with: descriptionArray.
-    columns := gLibrary g_list_append: columns with: textUnitIdsArray.
-    columns := gLibrary g_list_append: columns with: degreeArray.
+	columns := gLibrary g_list_append: columns with: idArray.
+	columns := gLibrary g_list_append: columns with: humanIdArray.
+	columns := gLibrary g_list_append: columns with: titleArray.
+	columns := gLibrary g_list_append: columns with: typeArray.
+	columns := gLibrary g_list_append: columns with: descriptionArray.
+	columns := gLibrary g_list_append: columns with: textUnitIdsArray.
+	columns := gLibrary g_list_append: columns with: degreeArray.
 
 
-    ^ columns
+	^ columns
 ]
 
 { #category : 'building' }
@@ -211,69 +248,120 @@ MooseGraphRAGV2 >> buildRelationshipsParquet [
 
 { #category : 'building' }
 MooseGraphRAGV2 >> buildTextUnitsColumns [
-    | idBuilder humanIdBuilder textBuilder nTokensBuilder documentIdBuilder
-      entityLstType entityIdsBuilder relLstType relIdsBuilder
-      idArray humanIdArray textArray nTokensArray documentIdArray
-      entityIdsArray relIdsArray columns rowCounter |
-    entityLstType := arrowLibrary garrow_list_data_type_new:
-        (arrowLibrary garrow_field_new: 'entity_id'
-            dataType: arrowLibrary garrow_string_data_type_new).
-    relLstType := arrowLibrary garrow_list_data_type_new:
-        (arrowLibrary garrow_field_new: 'relationship_id'
-            dataType: arrowLibrary garrow_string_data_type_new).
-    idBuilder := arrowLibrary garrow_string_array_builder_new.
-    humanIdBuilder := arrowLibrary garrow_int64_array_builder_new.
-    textBuilder := arrowLibrary garrow_string_array_builder_new.
-    nTokensBuilder := arrowLibrary garrow_int64_array_builder_new.
-    documentIdBuilder := arrowLibrary garrow_string_array_builder_new.
-    entityIdsBuilder := arrowLibrary garrow_list_array_builder_new: entityLstType error: nil.
-    relIdsBuilder := arrowLibrary garrow_list_array_builder_new: relLstType error: nil.
-    rowCounter := 0.
-    self textUnitEntities do: [ :entity |
-        | txt nTokens docId entityIds relIds |
-        txt := self safeString: ([ entity sourceText ] on: Error do: [ '' ]).
-        nTokens := txt size // 4 max: 1.
-        docId := (entity respondsTo: #sourceAnchor)
-            ifTrue: [ | anch |
-                anch := entity sourceAnchor.
-                (anch isNil or: [ (anch respondsTo: #fileName) not ])
-                    ifTrue: [ 'unknown' ]
-                    ifFalse: [ self safeString: anch fileName ] ]
-            ifFalse: [ 'unknown' ].
-        entityIds := OrderedCollection with: (self safeString: entity mooseID).
-        (entity respondsTo: #parentType) ifTrue: [
-            | pt | pt := [ entity parentType ] on: Error do: [ nil ].
-            pt isNil ifFalse: [ entityIds add: (self safeString: pt mooseID) ] ].
-        relIds := self safeStringCollection: (self relationshipIdsFor: entity).
-        rowCounter := rowCounter + 1.
-        arrowLibrary garrow_string_array_builder: idBuilder
-            _append_string: (self safeString: entity mooseID) error: nil.
-        arrowLibrary garrow_int64_array_builder: humanIdBuilder
-            _append_value: rowCounter error: nil.
-        arrowLibrary garrow_string_array_builder: textBuilder
-            _append_string: txt error: nil.
-        arrowLibrary garrow_int64_array_builder: nTokensBuilder
-            _append_value: nTokens error: nil.
-        arrowLibrary garrow_string_array_builder: documentIdBuilder
-            _append_string: docId error: nil.
-        self appendStrings: entityIds toListBuilder: entityIdsBuilder.
-        self appendStrings: relIds toListBuilder: relIdsBuilder ].
-    idArray := arrowLibrary garrow_array_builder_finish: idBuilder error: nil.
-    humanIdArray := arrowLibrary garrow_array_builder_finish: humanIdBuilder error: nil.
-    textArray := arrowLibrary garrow_array_builder_finish: textBuilder error: nil.
-    nTokensArray := arrowLibrary garrow_array_builder_finish: nTokensBuilder error: nil.
-    documentIdArray := arrowLibrary garrow_array_builder_finish: documentIdBuilder error: nil.
-    entityIdsArray := arrowLibrary garrow_array_builder_finish: entityIdsBuilder error: nil.
-    relIdsArray := arrowLibrary garrow_array_builder_finish: relIdsBuilder error: nil.
-    columns := nil.
-    columns := gLibrary g_list_append: columns with: idArray.
-    columns := gLibrary g_list_append: columns with: humanIdArray.
-    columns := gLibrary g_list_append: columns with: textArray.
-    columns := gLibrary g_list_append: columns with: nTokensArray.
-    columns := gLibrary g_list_append: columns with: documentIdArray.
-    columns := gLibrary g_list_append: columns with: entityIdsArray.
-    columns := gLibrary g_list_append: columns with: relIdsArray.
-    ^ columns
+
+	| idBuilder humanIdBuilder textBuilder nTokensBuilder documentIdBuilder entityLstType entityIdsBuilder relLstType relIdsBuilder idArray humanIdArray textArray nTokensArray documentIdArray entityIdsArray relIdsArray columns rowCounter |
+	"declare table colums type"
+	self flag: 'TODO: methods for each columns builder'.
+	entityLstType := arrowLibrary garrow_list_data_type_new:
+		                 (arrowLibrary
+			                  garrow_field_new: 'entity_id'
+			                  dataType:
+			                  arrowLibrary garrow_string_data_type_new).
+	relLstType := arrowLibrary garrow_list_data_type_new: (arrowLibrary
+			               garrow_field_new: 'relationship_id'
+			               dataType: arrowLibrary garrow_string_data_type_new).
+	idBuilder := arrowLibrary garrow_string_array_builder_new.
+	humanIdBuilder := arrowLibrary garrow_int64_array_builder_new.
+	textBuilder := arrowLibrary garrow_string_array_builder_new.
+	nTokensBuilder := arrowLibrary garrow_int64_array_builder_new.
+	documentIdBuilder := arrowLibrary garrow_string_array_builder_new.
+	entityIdsBuilder := arrowLibrary
+		                    garrow_list_array_builder_new: entityLstType
+		                    error: nil.
+	relIdsBuilder := arrowLibrary
+		                 garrow_list_array_builder_new: relLstType
+		                 error: nil.
+	rowCounter := 0.
+
+	"put values inside columns  for each entity"
+	self textUnitEntities do: [ :entity |
+			| txt nTokens docId entityIds relIds |
+			
+			"get values for each columns "
+			
+			txt := self safeString: ([ entity sourceText ]
+					        on: Error
+					        do: [ '' ]).
+			nTokens := txt size // 4 max: 1.
+			
+
+			"document id linked inside document.parquet (here java files)"
+			docId :=  (self safeString: entity sourceAnchor mooseID).
+			
+			"multiple entity can be extracted from the same text_unit, thus the following array."
+			entityIds := OrderedCollection with:
+				             (self safeString: entity mooseID).
+			"(entity respondsTo: #parentType) ifTrue: [
+					| pt |
+					pt := [ entity parentType ]
+						      on: Error
+						      do: [ nil ].
+					pt isNil ifFalse: [ entityIds add: (self safeString: pt mooseID) ] ]."
+			
+			self flag: 'check the necessity of relationIds in text_unit'.
+			"relIds := self safeStringCollection:
+				          (self relationshipIdsFor: entity sourceAnchor mooseID)."
+				
+			rowCounter := rowCounter + 1.
+			
+			"put the values in the proper columns"
+			arrowLibrary
+				garrow_string_array_builder: idBuilder
+				_append_string: (self safeString: entity sourceAnchor mooseID)
+				error: nil.
+			arrowLibrary
+				garrow_int64_array_builder: humanIdBuilder
+				_append_value: rowCounter
+				error: nil.
+			arrowLibrary
+				garrow_string_array_builder: textBuilder
+				_append_string: txt
+				error: nil.
+			arrowLibrary
+				garrow_int64_array_builder: nTokensBuilder
+				_append_value: nTokens
+				error: nil.
+			arrowLibrary
+				garrow_string_array_builder: documentIdBuilder
+				_append_string: docId
+				error: nil.
+			self appendStrings: entityIds toListBuilder: entityIdsBuilder.
+			self appendStrings: relIds toListBuilder: relIdsBuilder ].
+		
+		
+		
+	idArray := arrowLibrary
+		           garrow_array_builder_finish: idBuilder
+		           error: nil.
+	humanIdArray := arrowLibrary
+		                garrow_array_builder_finish: humanIdBuilder
+		                error: nil.
+	textArray := arrowLibrary
+		             garrow_array_builder_finish: textBuilder
+		             error: nil.
+	nTokensArray := arrowLibrary
+		                garrow_array_builder_finish: nTokensBuilder
+		                error: nil.
+	documentIdArray := arrowLibrary
+		                   garrow_array_builder_finish: documentIdBuilder
+		                   error: nil.
+	entityIdsArray := arrowLibrary
+		                  garrow_array_builder_finish: entityIdsBuilder
+		                  error: nil.
+"	relIdsArray := arrowLibrary
+		               garrow_array_builder_finish: relIdsBuilder
+		               error: nil."
+		
+	
+	columns := nil.
+	columns := gLibrary g_list_append: columns with: idArray.
+	columns := gLibrary g_list_append: columns with: humanIdArray.
+	columns := gLibrary g_list_append: columns with: textArray.
+	columns := gLibrary g_list_append: columns with: nTokensArray.
+	columns := gLibrary g_list_append: columns with: documentIdArray.
+	columns := gLibrary g_list_append: columns with: entityIdsArray.
+"	columns := gLibrary g_list_append: columns with: relIdsArray."
+	^ columns
 ]
 
 { #category : 'exporting' }
@@ -287,16 +375,22 @@ MooseGraphRAGV2 >> buildTextUnitsParquet [
 
 { #category : 'private' }
 MooseGraphRAGV2 >> computePrecomputedData [
-    methodTextUnitMap := Dictionary new.
-    entityRelationshipMap := Dictionary new.
-    self textUnitEntities do: [ :entity |
-        methodTextUnitMap at: entity mooseID put: entity mooseID printString ].
-    self relationshipRecords do: [ :record |
-        | relId source relIds |
-        relId := record first.
-        source := record second.
-        relIds := entityRelationshipMap at: source mooseID ifAbsentPut: [ OrderedCollection new ].
-        relIds add: relId ]
+
+
+	methodTextUnitMap := Dictionary new.
+	entityRelationshipMap := Dictionary new.
+	
+	self textUnitEntities do: [ :entity |
+			self flag: 'WARNING: check if methodTextUnitMap should be build here'. 
+		methodTextUnitMap at: entity mooseID put: nil ].
+	self relationshipRecords do: [ :record |
+			| relId source relIds |
+			relId := record first.
+			source := record second.
+			relIds := entityRelationshipMap
+				          at: source mooseID
+				          ifAbsentPut: [ OrderedCollection new ].
+			relIds add: relId ]
 ]
 
 { #category : 'private' }
@@ -336,15 +430,32 @@ MooseGraphRAGV2 >> exportTo: aPath [
     self buildTextUnitsParquet
 ]
 
+{ #category : 'as yet unclassified' }
+MooseGraphRAGV2 >> filteredFamixEntities [
+
+	^ filteredFamixEntities ifNil: [
+			  Set new
+				  add: FamixJavaSourcedEntity;
+				  yourself ]
+]
+
+{ #category : 'as yet unclassified' }
+MooseGraphRAGV2 >> filteredFamixEntities: anCollectionOfFamixTypes [
+
+	filteredFamixEntities addAll: (anCollectionOfFamixTypes asSet)
+]
+
 { #category : 'initialization' }
 MooseGraphRAGV2 >> initialize [
-    super initialize.
-    arrowLibrary := PharoArrowLibrary uniqueInstance.
-    gLibrary := PharoGLibLibrary uniqueInstance.
-    parquetLibrary := PharoParquetLibrary uniqueInstance.
-    methodTextUnitMap := Dictionary new.
-    entityRelationshipMap := Dictionary new.
-    outputPath := FileLocator documents fullName
+
+	super initialize.
+	arrowLibrary := PharoArrowLibrary uniqueInstance.
+	gLibrary := PharoGLibLibrary uniqueInstance.
+	parquetLibrary := PharoParquetLibrary uniqueInstance.
+	methodTextUnitMap := Dictionary new.
+	entityRelationshipMap := Dictionary new.
+	outputPath := FileLocator documents fullName.
+	filteredFamixEntities := Set new. 
 ]
 
 { #category : 'private' }
@@ -559,12 +670,15 @@ MooseGraphRAGV2 >> safeStringCollection: aCollection [
 
 { #category : 'accessing' }
 MooseGraphRAGV2 >> textUnitEntities [
-    "Entities (primarily methods) that have non-empty source text"
-    ^ self model allModelEntities select: [ :entity |
+	"Entities (primarily methods) that have non-empty source text"
+
+	^ (self model allWithSubTypesOfAny: self filteredFamixEntities) reject: [
+		  :entity | " ^ self model allModelEntities select: [ :entity |
         (entity respondsTo: #sourceText) and: [
             | txt |
             txt := [ entity sourceText ] on: Error do: [ nil ].
-            txt isNil not and: [ txt isNotEmpty ] ] ]
+            txt isNil not and: [ txt isNotEmpty ] ] ]"
+		  entity sourceText isEmpty ]
 ]
 
 { #category : 'private' }
