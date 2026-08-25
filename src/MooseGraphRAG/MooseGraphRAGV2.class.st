@@ -518,10 +518,12 @@ MooseGraphRAGV2 >> computePrecomputedData [
 	entityRelationshipMap := Dictionary new.
 	documentEntitiesMap := Dictionary new.
 
+	
+
 	self textUnitEntities do: [ :entity |
 			self flag:
 				'WARNING: check if methodTextUnitMap should be build here'.
-			methodTextUnitMap at: entity mooseID put: nil ].
+			methodTextUnitMap at: entity mooseID put: entity sourceAnchor mooseID ].
 
 	self relationshipRecords do: [ :record |
 			| relId source relIds |
@@ -874,26 +876,17 @@ MooseGraphRAGV2 >> safeStringCollection: aCollection [
 MooseGraphRAGV2 >> textUnitEntities [
 	"Entities (primarily methods) that have non-empty source text"
 
-	^ (self model allWithSubTypesOfAny: self filteredFamixEntities) reject: [
-		  :entity | " ^ self model allModelEntities select: [ :entity |
-        (entity respondsTo: #sourceText) and: [
-            | txt |
-            txt := [ entity sourceText ] on: Error do: [ nil ].
-            txt isNil not and: [ txt isNotEmpty ] ] ]"
-		  entity sourceText isEmpty ]
+	^ (self model allWithSubTypesOfAny: self filteredFamixEntities)
+		  reject: [ :entity | 
+			  entity sourceText isEmpty ]
 ]
 
 { #category : 'private' }
 MooseGraphRAGV2 >> textUnitIdsFor: entity [
-    | ids |
-    (methodTextUnitMap includesKey: entity mooseID) ifTrue: [
-        ^ OrderedCollection with: (methodTextUnitMap at: entity mooseID) ].
-    ids := OrderedCollection new.
-    (entity respondsTo: #methods) ifTrue: [
-        ([ entity methods ] on: Error do: [ #() ]) do: [ :method |
-            (methodTextUnitMap includesKey: method mooseID) ifTrue: [
-                ids add: (methodTextUnitMap at: method mooseID) ] ] ].
-    ^ ids
+
+	^ methodTextUnitMap at: entity mooseID ifPresent: [ :ids | OrderedCollection with: ids ] ifAbsent:  [ OrderedCollection new   ]
+
+	
 ]
 
 { #category : 'exporting' }
