@@ -16,6 +16,7 @@ MooseGraphRAGV2Test >> buildFamixJavaEntityNamed: name WithType: famixType withS
 	| entity anchor |
 	entity := famixType new.
 	entity name: name.
+
 	anchor := FamixJavaSourceTextAnchor new.
 	anchor source: aSourceText.
 	entity sourceAnchor: anchor.
@@ -98,6 +99,19 @@ MooseGraphRAGV2Test >> setUp [
 MooseGraphRAGV2Test >> tearDown [
     super tearDown.
     tmpPath asFileReference ensureDeleteAll
+]
+
+{ #category : 'test_export' }
+MooseGraphRAGV2Test >> testDocumentTableHasRightStructure [
+
+	| exporter reader table |
+	exporter := self exporter.
+	reader := GParquetArrowFileReader
+		          on: tmpPath , '/documents.parquet'
+		          error: nil.
+	table := reader readTableWithError: nil.
+"	self assert: table numberOfRows equals: 1."
+	self assert: table numberOfColumns equals: 7
 ]
 
 { #category : 'test_export' }

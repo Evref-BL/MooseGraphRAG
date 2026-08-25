@@ -45,54 +45,50 @@ MooseGraphRAGV2 >> appendStrings: aCollection toListBuilder: listBuilder [
 { #category : 'building' }
 MooseGraphRAGV2 >> buildDocumentsColumns [
 
-	| idBuilder humanIdBuilder textBuilder entityLstType entityIdsBuilder relLstType relIdsBuilder idArray humanIdArray textArray entityIdsArray columns rowCounter titleBuilder creationDateBuilder titleArray creationDateArray |
+	| idBuilder humanIdBuilder textBuilder entityLstType rawDataBuilder entityIdsBuilder idArray humanIdArray textArray entityIdsArray rawDataArray columns rowCounter titleBuilder creationDateBuilder titleArray creationDateArray |
 	"declare table colums type"
-	self flag: 'TODO: methods for each columns builder'.
-
 	entityLstType := arrowLibrary garrow_list_data_type_new:
 		                 (arrowLibrary
 			                  garrow_field_new: 'entity_id'
 			                  dataType:
 			                  arrowLibrary garrow_string_data_type_new).
-	relLstType := arrowLibrary garrow_list_data_type_new: (arrowLibrary
-			               garrow_field_new: 'relationship_id'
-			               dataType: arrowLibrary garrow_string_data_type_new).
+
 	idBuilder := arrowLibrary garrow_string_array_builder_new.
 	humanIdBuilder := arrowLibrary garrow_int64_array_builder_new.
 	textBuilder := arrowLibrary garrow_string_array_builder_new.
+	rawDataBuilder := arrowLibrary garrow_string_array_builder_new.
 	titleBuilder := arrowLibrary garrow_string_array_builder_new.
 	creationDateBuilder := arrowLibrary garrow_string_array_builder_new.
 	entityIdsBuilder := arrowLibrary
 		                    garrow_list_array_builder_new: entityLstType
 		                    error: nil.
-	relIdsBuilder := arrowLibrary
-		                 garrow_list_array_builder_new: relLstType
-		                 error: nil.
+
 	rowCounter := 0.
 
 	"put values inside columns  for each entity"
-	self documentEntities do: [ :entity |
-			| doc txt  docId entityIds title entities creationDate|
+	self documentEntities do: [ :documentPath |
+			| doc txt docId entityIds title entities creationDate |
 			"get values for each columns "
-			
-			entities := documentEntitiesMap at: entity .
+			entities := documentEntitiesMap at: documentPath.
 			doc := entities first sourceAnchor.
 			
-			txt := self safeString: ([ doc fileReference contents ]
+			txt := self safeString: ([ doc completeText ]
 					        on: Error
 					        do: [ '' ]).
 
-			title := self safeString: ([ (doc fileName) ]
-					        on: Error
-					        do: [ '' ]).
+			title := self safeString: ([ doc fileName ]
+					          on: Error
+					          do: [ '' ]).
 
 			"document id linked inside document.parquet (here java files)"
 			docId := self safeString: doc fileName hash.
 
 			"multiple entity can be extracted from the same text_unit, thus the following array."
-			entityIds := OrderedCollection withAll: (entities collect: [:e | self safeString: e mooseID ]).
-			
-			creationDate := self safeString: doc fileReference creationTime .
+			entityIds := OrderedCollection withAll:
+				             (entities collect: [ :e | self safeString: e mooseID ]).
+
+			creationDate := self safeString: doc fileReference creationTime.
+					
 
 			rowCounter := rowCounter + 1.
 
@@ -114,14 +110,18 @@ MooseGraphRAGV2 >> buildDocumentsColumns [
 				_append_string: title
 				error: nil.
 				
+			self appendStrings: entityIds toListBuilder: entityIdsBuilder.
+			
 			arrowLibrary
-				garrow_string_array_builder: creationDateBuilder 
+				garrow_string_array_builder: creationDateBuilder
 				_append_string: creationDate
 				error: nil.
-				
-			
 
-			self appendStrings: entityIds toListBuilder: entityIdsBuilder ].
+			arrowLibrary
+				garrow_string_array_builder: rawDataBuilder 
+				_append_string: ''
+				error: nil.
+			 ].
 
 
 	idArray := arrowLibrary
@@ -137,9 +137,13 @@ MooseGraphRAGV2 >> buildDocumentsColumns [
 		              garrow_array_builder_finish: titleBuilder
 		              error: nil.
 	creationDateArray := arrowLibrary
-		              garrow_array_builder_finish: creationDateBuilder 
-		              error: nil.
-
+		                     garrow_array_builder_finish:
+		                     creationDateBuilder
+		                     error: nil.
+		
+	rawDataArray := arrowLibrary
+		                  garrow_array_builder_finish: rawDataBuilder 
+		                  error: nil.
 	entityIdsArray := arrowLibrary
 		                  garrow_array_builder_finish: entityIdsBuilder
 		                  error: nil.
@@ -149,11 +153,12 @@ MooseGraphRAGV2 >> buildDocumentsColumns [
 	columns := nil.
 	columns := gLibrary g_list_append: columns with: idArray.
 	columns := gLibrary g_list_append: columns with: humanIdArray.
-	columns := gLibrary g_list_append: columns with: textArray.
-	columns := gLibrary g_list_append: columns with: textArray.
 	columns := gLibrary g_list_append: columns with: titleArray.
-	columns := gLibrary g_list_append: columns with: creationDateArray.
+	columns := gLibrary g_list_append: columns with: textArray.
 	columns := gLibrary g_list_append: columns with: entityIdsArray.
+	columns := gLibrary g_list_append: columns with: creationDateArray.
+	columns := gLibrary g_list_append: columns with: rawDataArray .
+
 
 	^ columns
 ]
@@ -164,6 +169,7 @@ MooseGraphRAGV2 >> buildDocumentsParquet [
 	| schema columns table |
 	schema := self prepareDocumentsSchema.
 	columns := self buildDocumentsColumns.
+
 	table := arrowLibrary
 		         garrow_table_new_values: schema
 		         values: columns
