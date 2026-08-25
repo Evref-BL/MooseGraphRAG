@@ -333,56 +333,96 @@ MooseGraphRAGV2 >> buildEntitiesParquet [
 
 { #category : 'building' }
 MooseGraphRAGV2 >> buildRelationshipsColumns [
-    | idBuilder humanIdBuilder sourceBuilder targetBuilder descriptionBuilder
-      weightBuilder textUnitLstType textUnitIdsBuilder combinedDegreeBuilder
-      idArray humanIdArray sourceArray targetArray descriptionArray weightArray
-      textUnitIdsArray combinedDegreeArray columns relCounter |
-    textUnitLstType := arrowLibrary garrow_list_data_type_new:
-        (arrowLibrary garrow_field_new: 'text_unit_id'
-            dataType: arrowLibrary garrow_string_data_type_new).
-    idBuilder := arrowLibrary garrow_string_array_builder_new.
-    humanIdBuilder := arrowLibrary garrow_int64_array_builder_new.
-    sourceBuilder := arrowLibrary garrow_string_array_builder_new.
-    targetBuilder := arrowLibrary garrow_string_array_builder_new.
-    descriptionBuilder := arrowLibrary garrow_string_array_builder_new.
-    weightBuilder := arrowLibrary garrow_float_array_builder_new.
-    textUnitIdsBuilder := arrowLibrary garrow_list_array_builder_new: textUnitLstType error: nil.
-    combinedDegreeBuilder := arrowLibrary garrow_int64_array_builder_new.
-    relCounter := 0.
-    self relationshipRecords do: [ :record |
-        | relId source target description textUnitIds |
-        relId := self safeString: record first.
-        source := record second.
-        target := record third.
-        description := self safeString: record fourth.
-        textUnitIds := self effectiveTextUnitIdsForSource: source target: target candidateIds: record fifth.
-        relCounter := relCounter + 1.
-        arrowLibrary garrow_string_array_builder: idBuilder _append_string: relId error: nil.
-        arrowLibrary garrow_int64_array_builder: humanIdBuilder _append_value: relCounter error: nil.
-        arrowLibrary garrow_string_array_builder: sourceBuilder _append_string: (self safeString: (self nameOf: source)) error: nil.
-        arrowLibrary garrow_string_array_builder: targetBuilder _append_string: (self safeString: (self nameOf: target)) error: nil.
-        arrowLibrary garrow_string_array_builder: descriptionBuilder _append_string: description error: nil.
-        weightBuilder append: 1.0.
-        self appendStrings: textUnitIds toListBuilder: textUnitIdsBuilder.
-        arrowLibrary garrow_int64_array_builder: combinedDegreeBuilder _append_value: 2 error: nil ].
-    idArray := arrowLibrary garrow_array_builder_finish: idBuilder error: nil.
-    humanIdArray := arrowLibrary garrow_array_builder_finish: humanIdBuilder error: nil.
-    sourceArray := arrowLibrary garrow_array_builder_finish: sourceBuilder error: nil.
-    targetArray := arrowLibrary garrow_array_builder_finish: targetBuilder error: nil.
-    descriptionArray := arrowLibrary garrow_array_builder_finish: descriptionBuilder error: nil.
-    weightArray := weightBuilder finish.
-    textUnitIdsArray := arrowLibrary garrow_array_builder_finish: textUnitIdsBuilder error: nil.
-    combinedDegreeArray := arrowLibrary garrow_array_builder_finish: combinedDegreeBuilder error: nil.
-    columns := nil.
-    columns := gLibrary g_list_append: columns with: idArray.
-    columns := gLibrary g_list_append: columns with: humanIdArray.
-    columns := gLibrary g_list_append: columns with: sourceArray.
-    columns := gLibrary g_list_append: columns with: targetArray.
-    columns := gLibrary g_list_append: columns with: descriptionArray.
-    columns := gLibrary g_list_append: columns with: weightArray.
-    columns := gLibrary g_list_append: columns with: textUnitIdsArray.
-    columns := gLibrary g_list_append: columns with: combinedDegreeArray.
-    ^ columns
+
+	| idBuilder humanIdBuilder sourceBuilder targetBuilder descriptionBuilder weightBuilder textUnitLstType textUnitIdsBuilder combinedDegreeBuilder idArray humanIdArray sourceArray targetArray descriptionArray weightArray textUnitIdsArray combinedDegreeArray columns relCounter |
+	textUnitLstType := arrowLibrary garrow_list_data_type_new:
+		                   (arrowLibrary
+			                    garrow_field_new: 'text_unit_id'
+			                    dataType:
+			                    arrowLibrary garrow_string_data_type_new).
+	idBuilder := arrowLibrary garrow_string_array_builder_new.
+	humanIdBuilder := arrowLibrary garrow_int64_array_builder_new.
+	sourceBuilder := arrowLibrary garrow_string_array_builder_new.
+	targetBuilder := arrowLibrary garrow_string_array_builder_new.
+	descriptionBuilder := arrowLibrary garrow_string_array_builder_new.
+	weightBuilder := arrowLibrary garrow_float_array_builder_new.
+	textUnitIdsBuilder := arrowLibrary
+		                      garrow_list_array_builder_new: textUnitLstType
+		                      error: nil.
+	combinedDegreeBuilder := arrowLibrary garrow_int64_array_builder_new.
+	relCounter := 0.
+	self relationshipRecords do: [ :record |
+			| relId source target description textUnitIds |
+			
+			relId := self safeString: record first.
+			source := record second.
+			target := record third.
+			description := self safeString: record fourth.
+
+			textUnitIds := self
+				               effectiveTextUnitIdsForSource: source
+				               target: target
+				               candidateIds: record fifth.
+			relCounter := relCounter + 1.
+			arrowLibrary
+				garrow_string_array_builder: idBuilder
+				_append_string: relId
+				error: nil.
+			arrowLibrary
+				garrow_int64_array_builder: humanIdBuilder
+				_append_value: relCounter
+				error: nil.
+			arrowLibrary
+				garrow_string_array_builder: sourceBuilder
+				_append_string: (self safeString: (self nameOf: source))
+				error: nil.
+			arrowLibrary
+				garrow_string_array_builder: targetBuilder
+				_append_string: (self safeString: (self nameOf: target))
+				error: nil.
+			arrowLibrary
+				garrow_string_array_builder: descriptionBuilder
+				_append_string: description
+				error: nil.
+			weightBuilder append: 1.0.
+			self appendStrings: textUnitIds toListBuilder: textUnitIdsBuilder.
+			arrowLibrary
+				garrow_int64_array_builder: combinedDegreeBuilder
+				_append_value: 2
+				error: nil ].
+	idArray := arrowLibrary
+		           garrow_array_builder_finish: idBuilder
+		           error: nil.
+	humanIdArray := arrowLibrary
+		                garrow_array_builder_finish: humanIdBuilder
+		                error: nil.
+	sourceArray := arrowLibrary
+		               garrow_array_builder_finish: sourceBuilder
+		               error: nil.
+	targetArray := arrowLibrary
+		               garrow_array_builder_finish: targetBuilder
+		               error: nil.
+	descriptionArray := arrowLibrary
+		                    garrow_array_builder_finish: descriptionBuilder
+		                    error: nil.
+	weightArray := weightBuilder finish.
+	textUnitIdsArray := arrowLibrary
+		                    garrow_array_builder_finish: textUnitIdsBuilder
+		                    error: nil.
+	combinedDegreeArray := arrowLibrary
+		                       garrow_array_builder_finish:
+		                       combinedDegreeBuilder
+		                       error: nil.
+	columns := nil.
+	columns := gLibrary g_list_append: columns with: idArray.
+	columns := gLibrary g_list_append: columns with: humanIdArray.
+	columns := gLibrary g_list_append: columns with: sourceArray.
+	columns := gLibrary g_list_append: columns with: targetArray.
+	columns := gLibrary g_list_append: columns with: descriptionArray.
+	columns := gLibrary g_list_append: columns with: weightArray.
+	columns := gLibrary g_list_append: columns with: textUnitIdsArray.
+	columns := gLibrary g_list_append: columns with: combinedDegreeArray.
+	^ columns
 ]
 
 { #category : 'exporting' }
@@ -524,21 +564,24 @@ MooseGraphRAGV2 >> computePrecomputedData [
 	entityRelationshipMap := Dictionary new.
 	documentEntitiesMap := Dictionary new.
 
-	
+
 
 	self textUnitEntities do: [ :entity |
 			self flag:
 				'WARNING: check if methodTextUnitMap should be build here'.
-			methodTextUnitMap at: entity mooseID put: entity sourceAnchor mooseID ].
+			methodTextUnitMap
+				at: entity mooseID
+				put: entity sourceAnchor mooseID ].
 
 	self relationshipRecords do: [ :record |
-			| relId source relIds |
+			| relId source |
 			relId := record first.
 			source := record second.
-			relIds := entityRelationshipMap
-				          at: source mooseID
-				          ifAbsentPut: [ OrderedCollection new ].
-			relIds add: relId ].
+
+			entityRelationshipMap
+				at: source mooseID
+				ifPresent: [ :rel | rel add: relId ]
+				ifAbsentPut: [ OrderedCollection with: relId ] ].
 
 	"Mapping document (java files) to entities (if not nil)"
 	((self model allWithSubTypesOf: FamixJavaSourceAnchor) reject: [
@@ -642,7 +685,7 @@ MooseGraphRAGV2 >> invocationRelationshipRecords [
             candidates do: [ :target |
                 (target isNil not and: [ target respondsTo: #mooseID ]) ifTrue: [
                     records add: {
-                        sender mooseID printString , '-invokes-' , target mooseID printString.
+                        (sender mooseID printString , '-invokes-' , target mooseID printString) hash.
                         sender.
                         target.
                         'invokes'.
@@ -819,11 +862,11 @@ MooseGraphRAGV2 >> propertyRelationshipRecords [
 
 	| records |
 	records := OrderedCollection new.
-	self entitiesToExport do: [ :entity |
-			entity metadescription allComplexProperties do: [ :property |
+	self entitiesToExport do: [ :source |
+			source metadescription allComplexProperties do: [ :property |
 					(property isRelation and: [ property isDerived not ]) ifTrue: [
 							| value targets |
-							value := [ property getFrom: entity ]
+							value := [ property getFrom: source ]
 								         on: Error
 								         do: [ nil ].
 							value isNil ifFalse: [
@@ -833,14 +876,16 @@ MooseGraphRAGV2 >> propertyRelationshipRecords [
 									targets do: [ :target |
 											(target isNil not and: [ target respondsTo: #mooseID ])
 												ifTrue: [
+													 
 														records add: {
-																(entity mooseID printString , '-' , property name
-																 , '-' , target mooseID printString).
-																entity.
+																(source mooseID printString , '-' , property name
+																 , '-' , target mooseID printString) hash.
+																source.
 																target.
 																(property name , ': '
 																 , (property comment ifNil: [ '' ])).
-																(self textUnitIdsFor: entity) } ] ] ] ] ] ].
+																(self textUnitIdsFor: source) } ] ] ] ] ] ].
+										
 	^ records
 ]
 
