@@ -18,12 +18,9 @@ BaselineOfMooseGraphRAG >> baseline: spec [
 { #category : 'baselines' }
 BaselineOfMooseGraphRAG >> defineDependencies: spec [
 
-	 spec
-        baseline: 'PharoArrow'
-        with: [ spec
-            repository: 'github://badetitou/PharoArrow:main/src' ].
-
-
+	spec
+		baseline: 'PharoArrow'
+		with: [ spec repository: 'github://Evref-BL/PharoArrow:main/src' ]
 ]
 
 { #category : 'baselines' }
